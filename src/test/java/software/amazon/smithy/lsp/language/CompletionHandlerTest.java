@@ -16,19 +16,18 @@ import static org.hamcrest.Matchers.startsWith;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionParams;
 import org.eclipse.lsp4j.Position;
 import org.junit.jupiter.api.Test;
 import software.amazon.smithy.lsp.LspMatchers;
 import software.amazon.smithy.lsp.RequestBuilders;
+import software.amazon.smithy.lsp.ServerState;
 import software.amazon.smithy.lsp.TestWorkspace;
 import software.amazon.smithy.lsp.TextWithPositions;
 import software.amazon.smithy.lsp.document.Document;
 import software.amazon.smithy.lsp.project.Project;
 import software.amazon.smithy.lsp.project.ProjectLoader;
-import software.amazon.smithy.lsp.project.ProjectManager;
 import software.amazon.smithy.lsp.project.SmithyFile;
 
 public class CompletionHandlerTest {
@@ -1044,7 +1043,7 @@ public class CompletionHandlerTest {
 
     private static List<CompletionItem> getCompItems(String text, Position... positions) {
         TestWorkspace workspace = TestWorkspace.singleModel(text);
-        Project project = ProjectLoader.load(workspace.getRoot(), new ProjectManager(), Set.of()).unwrap();
+        Project project = ProjectLoader.load(workspace.getRoot(), new ServerState()).unwrap();
         String uri = workspace.getUri("main.smithy");
         SmithyFile smithyFile = project.getSmithyFile(uri);
 

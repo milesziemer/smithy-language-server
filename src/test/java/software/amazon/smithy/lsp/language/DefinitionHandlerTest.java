@@ -17,17 +17,16 @@ import static software.amazon.smithy.lsp.document.DocumentTest.safeString;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import org.eclipse.lsp4j.DefinitionParams;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.Position;
 import org.junit.jupiter.api.Test;
 import software.amazon.smithy.lsp.RequestBuilders;
+import software.amazon.smithy.lsp.ServerState;
 import software.amazon.smithy.lsp.TestWorkspace;
 import software.amazon.smithy.lsp.TextWithPositions;
 import software.amazon.smithy.lsp.project.Project;
 import software.amazon.smithy.lsp.project.ProjectLoader;
-import software.amazon.smithy.lsp.project.ProjectManager;
 import software.amazon.smithy.lsp.project.SmithyFile;
 import software.amazon.smithy.lsp.syntax.Syntax;
 import software.amazon.smithy.lsp.syntax.SyntaxSearch;
@@ -349,7 +348,7 @@ public class DefinitionHandlerTest {
 
     private static GetLocationsResult getLocations(String text, Position... positions) {
         TestWorkspace workspace = TestWorkspace.singleModel(text);
-        Project project = ProjectLoader.load(workspace.getRoot(), new ProjectManager(), Set.of()).unwrap();
+        Project project = ProjectLoader.load(workspace.getRoot(), new ServerState()).unwrap();
         String uri = workspace.getUri("main.smithy");
         SmithyFile smithyFile = project.getSmithyFile(uri);
 
