@@ -21,15 +21,15 @@ import software.amazon.smithy.utils.ListUtils;
 public class FilePatternsTest {
     @Test
     public void createsProjectPathMatchers() {
-        TestWorkspace workspace = TestWorkspace.builder()
-                .withSourceDir(new TestWorkspace.Dir()
+        TestProject workspace = TestProject.builder()
+                .withSourceDir(new TestProject.Dir()
                         .withPath("foo")
-                        .withSourceDir(new TestWorkspace.Dir()
+                        .withSourceDir(new TestProject.Dir()
                                 .withPath("bar")
                                 .withSourceFile("bar.smithy", "")
                                 .withSourceFile("baz.smithy", ""))
                         .withSourceFile("baz.smithy", ""))
-                .withSourceDir(new TestWorkspace.Dir()
+                .withSourceDir(new TestProject.Dir()
                         .withPath("other")
                         .withSourceFile("other.smithy", ""))
                 .withSourceFile("abc.smithy", "")
@@ -56,7 +56,7 @@ public class FilePatternsTest {
         Path workspaceRoot = Files.createTempDirectory("test");
         workspaceRoot.toFile().deleteOnExit();
 
-        TestWorkspace fooWorkspace = TestWorkspace.builder()
+        TestProject fooWorkspace = TestProject.builder()
                 .withRoot(workspaceRoot)
                 .withPath("foo")
                 .build();

@@ -23,7 +23,7 @@ import org.eclipse.lsp4j.Position;
 import org.junit.jupiter.api.Test;
 import software.amazon.smithy.lsp.RequestBuilders;
 import software.amazon.smithy.lsp.ServerState;
-import software.amazon.smithy.lsp.TestWorkspace;
+import software.amazon.smithy.lsp.TestProject;
 import software.amazon.smithy.lsp.TextWithPositions;
 import software.amazon.smithy.lsp.project.Project;
 import software.amazon.smithy.lsp.project.ProjectLoader;
@@ -347,7 +347,7 @@ public class DefinitionHandlerTest {
     }
 
     private static GetLocationsResult getLocations(String text, Position... positions) {
-        TestWorkspace workspace = TestWorkspace.singleModel(text);
+        TestProject workspace = TestProject.singleModel(text);
         Project project = ProjectLoader.load(workspace.getRoot(), new ServerState()).unwrap();
         String uri = workspace.getUri("main.smithy");
         SmithyFile smithyFile = project.getSmithyFile(uri);

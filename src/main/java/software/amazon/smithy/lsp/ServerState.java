@@ -34,14 +34,14 @@ import software.amazon.smithy.lsp.util.Result;
  * @param workspacePaths Paths to roots of each workspace open in the client
  * @param managedUris Uris of each file managed by the server/client, i.e.
  *                    files which may be updated by didChange
- * @param lifecycleManager Container for ongoing tasks
+ * @param documentTasks Container for ongoing tasks
  */
 public record ServerState(
         Map<String, Project> detachedProjects,
         Map<String, Project> attachedProjects,
         Set<Path> workspacePaths,
         Set<String> managedUris,
-        DocumentLifecycleManager lifecycleManager
+        DocumentTasks documentTasks
 ) {
     private static final Logger LOGGER = Logger.getLogger(ServerState.class.getName());
 
@@ -54,7 +54,7 @@ public record ServerState(
                 new HashMap<>(),
                 new HashSet<>(),
                 new HashSet<>(),
-                new DocumentLifecycleManager());
+                new DocumentTasks());
     }
 
     /**
@@ -136,7 +136,7 @@ public record ServerState(
 
     List<Exception> tryInitProject(Path root) {
         LOGGER.finest("Initializing project at " + root);
-        lifecycleManager.cancelAllTasks();
+        documentTasks.cancelAllTasks();
 
         Result<Project, List<Exception>> loadResult = ProjectLoader.load(root, this);
         String projectName = root.toString();

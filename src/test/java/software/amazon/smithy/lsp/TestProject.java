@@ -19,21 +19,18 @@ import software.amazon.smithy.model.node.NodeMapper;
 /**
  * Sets up a temporary directory containing a Smithy project
  */
-public final class TestWorkspace {
+public final class TestProject {
     private static final NodeMapper MAPPER = new NodeMapper();
     private final Path root;
     private SmithyBuildConfig config;
     private final String name;
 
-    private TestWorkspace(Path root, SmithyBuildConfig config) {
+    private TestProject(Path root, SmithyBuildConfig config) {
         this.root = root;
         this.config = config;
         this.name = root.toString();
     }
 
-    /**
-     * @return The path of the workspace root
-     */
     public Path getRoot() {
         return root;
     }
@@ -46,19 +43,11 @@ public final class TestWorkspace {
         return name;
     }
 
-    /**
-     * @param filename The name of the file to get the URI for, relative to the root
-     * @return The LSP URI for the given filename
-     */
     public String getUri(String filename) {
         return this.root.resolve(filename).toUri().toString();
     }
 
-    /**
-     * @param relativePath The path where the model will be added, relative to the root
-     * @param model The text of the model to add
-     */
-    public void addModel(String relativePath, String model) {
+    public void addFile(String relativePath, String model) {
         try {
             Files.writeString(root.resolve(relativePath), model);
         } catch (IOException e) {
@@ -66,7 +55,7 @@ public final class TestWorkspace {
         }
     }
 
-    public void moveModel(String currentPath, String toPath) {
+    public void moveFile(String currentPath, String toPath) {
         try {
             Files.move(root.resolve(currentPath), root.resolve(toPath));
         } catch (IOException e) {
@@ -74,7 +63,7 @@ public final class TestWorkspace {
         }
     }
 
-    public void deleteModel(String relativePath) {
+    public void deleteFile(String relativePath) {
         try {
             Files.delete(root.resolve(relativePath));
         } catch (IOException e) {
@@ -100,7 +89,7 @@ public final class TestWorkspace {
      * @return A workspace with a single model, "main.smithy", with the given contents, and
      *  a smithy-build.json with sources = ["main.smithy"]
      */
-    public static TestWorkspace singleModel(String model) {
+    public static TestProject singleModel(String model) {
         return builder()
                 .withSourceFile("main.smithy", model)
                 .build();
@@ -109,7 +98,7 @@ public final class TestWorkspace {
     /**
      * @return A workspace with no models, and a smithy-build.json with sources = ["model/"]
      */
-    public static TestWorkspace emptyWithDirSource() {
+    public static TestProject emptyWithDirSource() {
         return builder()
                 .withSourceDir(new Dir().withPath("model"))
                 .build();
@@ -120,7 +109,7 @@ public final class TestWorkspace {
      * @return A workspace with n models, each "model-n.smithy", with their given contents,
      *  and a smithy-build.json with sources = ["model-0.smithy", ..., "model-n.smithy"]
      */
-    public static TestWorkspace multipleModels(String... models) {
+    public static TestProject multipleModels(String... models) {
         Builder builder = builder();
         for (int i = 0; i < models.length; i++) {
             builder.withSourceFile("model-" + i + ".smithy", models[i]);
@@ -235,7 +224,7 @@ public final class TestWorkspace {
             return this;
         }
 
-        public TestWorkspace build() {
+        public TestProject build() {
             try {
                 if (path == null) {
                     path = "test";
@@ -267,7 +256,7 @@ public final class TestWorkspace {
 
                 writeModels(projectRoot);
 
-                return new TestWorkspace(projectRoot, config);
+                return new TestProject(projectRoot, config);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

@@ -76,13 +76,6 @@ public final class ProjectLoader {
         Path path = Paths.get(asPath);
         List<Path> sources = Collections.singletonList(path);
 
-        Project.Builder builder = Project.builder()
-                .root(path.getParent())
-                .config(ProjectConfig.builder()
-                        .sources(Collections.singletonList(asPath))
-                        .build())
-                .modelResult(modelResult);
-
         Map<String, SmithyFile> smithyFiles = computeSmithyFiles(sources, modelResult, (filePath) -> {
             // NOTE: isSmithyJarFile and isJarFile typically take in a URI (filePath is a path), but
             // the model stores jar paths as URIs
@@ -100,7 +93,13 @@ public final class ProjectLoader {
             }
         });
 
-        return builder.smithyFiles(smithyFiles)
+        return Project.builder()
+                .root(path.getParent())
+                .config(ProjectConfig.builder()
+                        .sources(List.of(asPath))
+                        .build())
+                .modelResult(modelResult)
+                .smithyFiles(smithyFiles)
                 .perFileMetadata(computePerFileMetadata(modelResult))
                 .build();
     }
@@ -172,13 +171,6 @@ public final class ProjectLoader {
 
         ValidatedResult<Model> modelResult = loadModelResult.unwrap();
 
-        Project.Builder projectBuilder = Project.builder()
-                .root(root)
-                .config(config)
-                .dependencies(dependencies)
-                .modelResult(modelResult)
-                .assemblerFactory(assemblerFactory);
-
         Map<String, SmithyFile> smithyFiles = computeSmithyFiles(allSmithyFilePaths, modelResult, (filePath) -> {
             // NOTE: isSmithyJarFile and isJarFile typically take in a URI (filePath is a path), but
             // the model stores jar paths as URIs
@@ -197,14 +189,16 @@ public final class ProjectLoader {
             return Document.of(IoUtils.readUtf8File(filePath));
         });
 
-        return Result.ok(projectBuilder.smithyFiles(smithyFiles)
+        return Result.ok(Project.builder()
+                .root(root)
+                .config(config)
+                .dependencies(dependencies)
+                .modelResult(modelResult)
+                .assemblerFactory(assemblerFactory)
+                .smithyFiles(smithyFiles)
                 .perFileMetadata(computePerFileMetadata(modelResult))
                 .smithyFileDependenciesIndex(SmithyFileDependenciesIndex.compute(modelResult))
                 .build());
-    }
-
-    static Result<Project, List<Exception>> load(Path root) {
-        return load(root, new ServerState());
     }
 
     private static Map<String, SmithyFile> computeSmithyFiles(

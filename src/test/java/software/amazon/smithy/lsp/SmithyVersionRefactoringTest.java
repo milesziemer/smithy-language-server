@@ -21,7 +21,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
-import static software.amazon.smithy.lsp.SmithyLanguageServerTest.initFromWorkspace;
+import static software.amazon.smithy.lsp.SmithyLanguageServerTest.initAtProjectRoot;
 import static software.amazon.smithy.lsp.document.DocumentTest.safeString;
 
 import java.util.List;
@@ -53,9 +53,9 @@ public class SmithyVersionRefactoringTest {
                 namespace com.foo
                 string Foo
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
+        TestProject workspace = TestProject.singleModel(model);
         StubClient client = new StubClient();
-        SmithyLanguageServer server = initFromWorkspace(workspace, client);
+        SmithyLanguageServer server = initAtProjectRoot(workspace, client);
         String uri = workspace.getUri("main.smithy");
 
         server.didOpen(new RequestBuilders.DidOpen().uri(uri).text(model).build());
@@ -103,9 +103,9 @@ public class SmithyVersionRefactoringTest {
                 namespace com.foo
                 string Foo
                 """;
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
+        TestProject workspace = TestProject.singleModel(model);
         StubClient client = new StubClient();
-        SmithyLanguageServer server = initFromWorkspace(workspace, client);
+        SmithyLanguageServer server = initAtProjectRoot(workspace, client);
         String uri = workspace.getUri("main.smithy");
 
         server.didOpen(new RequestBuilders.DidOpen().uri(uri).text(model).build());
@@ -155,8 +155,8 @@ public class SmithyVersionRefactoringTest {
                 namespace com.foo
                 string Foo
                 """;
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = SmithyLanguageServerTest.initAtProjectRoot(workspace);
         String uri = workspace.getUri("main.smithy");
 
         server.didOpen(new RequestBuilders.DidOpen().uri(uri).text(model).build());
@@ -174,8 +174,8 @@ public class SmithyVersionRefactoringTest {
     @Test
     public void noShapes() {
         String model = "namespace com.foo\n";
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = SmithyLanguageServerTest.initAtProjectRoot(workspace);
         String uri = workspace.getUri("main.smithy");
 
         server.didOpen(new RequestBuilders.DidOpen().uri(uri).text(model).build());

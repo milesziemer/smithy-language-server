@@ -87,8 +87,8 @@ public class SmithyLanguageServerTest {
 
                 string Foo
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         SelectorParams params = new SelectorParams("string");
         List<? extends Location> locations = server.selectorCommand(params).get();
@@ -109,8 +109,8 @@ public class SmithyLanguageServerTest {
                 @default(0)
                 integer Bar
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri("main.smithy");
 
@@ -156,8 +156,8 @@ public class SmithyLanguageServerTest {
 
                 string Bar
                 """);
-        TestWorkspace workspace = TestWorkspace.multipleModels(model1, model2);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.multipleModels(model1, model2);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri("model-0.smithy");
 
@@ -219,8 +219,8 @@ public class SmithyLanguageServerTest {
                 @myTrait("")
                 string Baz
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri("main.smithy");
 
@@ -282,8 +282,8 @@ public class SmithyLanguageServerTest {
                     baz: String
                 }
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
         String uri = workspace.getUri("main.smithy");
 
         // bar: Bar
@@ -324,8 +324,8 @@ public class SmithyLanguageServerTest {
                     baz: String
                 }
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri("main.smithy");
 
@@ -362,8 +362,8 @@ public class SmithyLanguageServerTest {
                 @myTrait("abc")
                 integer Baz
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri("main.smithy");
 
@@ -371,7 +371,7 @@ public class SmithyLanguageServerTest {
                 .uri(uri)
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         DocumentSymbolParams params = new DocumentSymbolParams(new TextDocumentIdentifier(uri));
         List<Either<SymbolInformation, DocumentSymbol>> response = server.documentSymbol(params).get();
@@ -400,8 +400,8 @@ public class SmithyLanguageServerTest {
                     "b"])
                 string Baz
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri("main.smithy");
 
@@ -437,8 +437,8 @@ public class SmithyLanguageServerTest {
                 operation GetFoo {
                 }
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri("main.smithy");
 
@@ -467,7 +467,7 @@ public class SmithyLanguageServerTest {
         server.didChange(changeBuilder.range(rangeBuilder.shiftRight().build()).text(" ").build());
         server.didChange(changeBuilder.range(rangeBuilder.shiftRight().build()).text("G").build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         // mostly so you can see what it looks like
         assertThat(server.getFirstProject().getDocument(uri).copyText(), equalTo(safeString("""
@@ -501,8 +501,8 @@ public class SmithyLanguageServerTest {
 
                 operation Foo {}
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri("main.smithy");
 
@@ -520,7 +520,7 @@ public class SmithyLanguageServerTest {
                 .build();
         server.didChange(didChangeParams);
 
-        server.getState().lifecycleManager().getTask(uri).get();
+        server.getState().documentTasks().getTask(uri).get();
 
         assertThat(server.getFirstProject().modelResult().getValidationEvents(),
                 containsInAnyOrder(eventWithMessage(containsString("Error creating trait"))));
@@ -544,8 +544,8 @@ public class SmithyLanguageServerTest {
 
                 string Bar
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
         String uri = workspace.getUri("main.smithy");
 
         server.didOpen(new RequestBuilders.DidOpen()
@@ -579,7 +579,7 @@ public class SmithyLanguageServerTest {
         server.didChange(change.range(range.shiftRight().build()).text("a").build());
         server.didChange(change.range(range.shiftRight().build()).text("z").build());
 
-        server.getState().lifecycleManager().getTask(uri).get();
+        server.getState().documentTasks().getTask(uri).get();
 
         assertThat(server.getFirstProject().getDocument(uri).copyText(), equalTo(safeString("""
                 $version: "2"
@@ -656,8 +656,8 @@ public class SmithyLanguageServerTest {
                 structure Foo {}
 
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
         String uri = workspace.getUri("main.smithy");
 
         server.didOpen(new RequestBuilders.DidOpen()
@@ -693,7 +693,7 @@ public class SmithyLanguageServerTest {
         server.didChange(change.range(range.shiftRight().build()).text("[]").build());
         server.didChange(change.range(range.shiftRight().build()).text("F").build());
 
-        server.getState().lifecycleManager().getTask(uri).get();
+        server.getState().documentTasks().getTask(uri).get();
 
         assertThat(server.getFirstProject().getDocument(uri).copyText(), equalTo(safeString("""
                 $version: "2"
@@ -728,8 +728,8 @@ public class SmithyLanguageServerTest {
 
                 structure Bar {}
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
         String uri = workspace.getUri("main.smithy");
 
         server.didOpen(new RequestBuilders.DidOpen()
@@ -752,7 +752,7 @@ public class SmithyLanguageServerTest {
         server.didChange(change.range(range.shiftRight().build()).text("[]").build());
         server.didChange(change.range(range.shiftRight().build()).text("F").build());
 
-        server.getState().lifecycleManager().getTask(uri).get();
+        server.getState().documentTasks().getTask(uri).get();
 
         assertThat(server.getFirstProject().getDocument(uri).copyText(), equalTo(safeString("""
                 $version: "2"
@@ -787,8 +787,8 @@ public class SmithyLanguageServerTest {
                     bar: Bar
                 }
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
         String uri = workspace.getUri("main.smithy");
 
         List<Diagnostic> diagnostics = server.getFileDiagnostics(uri);
@@ -812,8 +812,8 @@ public class SmithyLanguageServerTest {
                     bar: String
                 }
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
         String uri = workspace.getUri("main.smithy");
 
         server.didOpen(new RequestBuilders.DidOpen()
@@ -841,7 +841,7 @@ public class SmithyLanguageServerTest {
                    \s
                 }
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
+        TestProject workspace = TestProject.singleModel(model);
         StubClient client = new StubClient();
         SmithyLanguageServer server = new SmithyLanguageServer();
         server.connect(client);
@@ -887,8 +887,8 @@ public class SmithyLanguageServerTest {
                     bar: PrimitiveInteger
                 }
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(model);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(model);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri("main.smithy");
 
@@ -922,12 +922,12 @@ public class SmithyLanguageServerTest {
 
     @Test
     public void addingWatchedFile() throws Exception {
-        TestWorkspace workspace = TestWorkspace.emptyWithDirSource();
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.emptyWithDirSource();
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String filename = "model/main.smithy";
         String modelText = "";
-        workspace.addModel(filename, modelText);
+        workspace.addFile(filename, modelText);
         String uri = workspace.getUri(filename);
 
         // The file may be opened before the client notifies the server it's been created
@@ -947,7 +947,7 @@ public class SmithyLanguageServerTest {
                 .build());
 
         // Make sure the task is running, then wait for it
-        CompletableFuture<Void> future = server.getState().lifecycleManager().getTask(uri);
+        CompletableFuture<Void> future = server.getState().documentTasks().getTask(uri);
         assertThat(future, notNullValue());
         future.get();
 
@@ -960,15 +960,15 @@ public class SmithyLanguageServerTest {
 
     @Test
     public void removingWatchedFile() {
-        TestWorkspace workspace = TestWorkspace.emptyWithDirSource();
+        TestProject workspace = TestProject.emptyWithDirSource();
         String filename = "model/main.smithy";
         String modelText = safeString("""
                 $version: "2"
                 namespace com.foo
                 string Foo
                 """);
-        workspace.addModel(filename, modelText);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        workspace.addFile(filename, modelText);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri(filename);
 
@@ -979,7 +979,7 @@ public class SmithyLanguageServerTest {
         server.didClose(RequestBuilders.didClose()
                 .uri(uri)
                 .build());
-        workspace.deleteModel(filename);
+        workspace.deleteFile(filename);
         server.didChangeWatchedFiles(RequestBuilders.didChangeWatchedFiles()
                 .event(uri, FileChangeType.Deleted)
                 .build());
@@ -990,15 +990,15 @@ public class SmithyLanguageServerTest {
 
     @Test
     public void addingDetachedFile() {
-        TestWorkspace workspace = TestWorkspace.emptyWithDirSource();
+        TestProject workspace = TestProject.emptyWithDirSource();
         String filename = "main.smithy";
         String modelText = safeString("""
                 $version: "2"
                 namespace com.foo
                 string Foo
                 """);
-        workspace.addModel(filename, modelText);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        workspace.addFile(filename, modelText);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri(filename);
 
@@ -1012,7 +1012,7 @@ public class SmithyLanguageServerTest {
         assertThat(server.getState().findProjectAndFile(uri), notNullValue());
 
         String movedFilename = "model/main.smithy";
-        workspace.moveModel(filename, movedFilename);
+        workspace.moveFile(filename, movedFilename);
         String movedUri = workspace.getUri(movedFilename);
         server.didClose(RequestBuilders.didClose()
                 .uri(uri)
@@ -1035,15 +1035,15 @@ public class SmithyLanguageServerTest {
 
     @Test
     public void removingAttachedFile() {
-        TestWorkspace workspace = TestWorkspace.emptyWithDirSource();
+        TestProject workspace = TestProject.emptyWithDirSource();
         String filename = "model/main.smithy";
         String modelText = safeString("""
                 $version: "2"
                 namespace com.foo
                 string Foo
                 """);
-        workspace.addModel(filename, modelText);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        workspace.addFile(filename, modelText);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri(filename);
 
@@ -1057,7 +1057,7 @@ public class SmithyLanguageServerTest {
         assertThat(server.getState().findProjectAndFile(uri), notNullValue());
 
         String movedFilename = "main.smithy";
-        workspace.moveModel(filename, movedFilename);
+        workspace.moveFile(filename, movedFilename);
         String movedUri = workspace.getUri(movedFilename);
 
         server.didClose(RequestBuilders.didClose()
@@ -1092,13 +1092,13 @@ public class SmithyLanguageServerTest {
 
                 string Foo
                 """);
-        TestWorkspace workspace = TestWorkspace.builder()
-                .withSourceDir(TestWorkspace.dir()
+        TestProject workspace = TestProject.builder()
+                .withSourceDir(TestProject.dir()
                         .withPath("./smithy")
                         .withSourceFile("main.smithy", modelText))
                 .withConfig(config)
                 .build();
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri(filename);
 
@@ -1134,8 +1134,8 @@ public class SmithyLanguageServerTest {
 
                 string Bar
                 """);
-        TestWorkspace workspace = TestWorkspace.multipleModels(modelText1, modelText2);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.multipleModels(modelText1, modelText2);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         Map<String, Node> metadataBefore = server.getFirstProject().modelResult().unwrap().getMetadata();
         assertThat(metadataBefore, hasKey("foo"));
@@ -1157,7 +1157,7 @@ public class SmithyLanguageServerTest {
                 .uri(uri)
                 .build());
 
-        server.getState().lifecycleManager().getTask(uri).get();
+        server.getState().documentTasks().getTask(uri).get();
 
         Map<String, Node> metadataAfter = server.getFirstProject().modelResult().unwrap().getMetadata();
         assertThat(metadataAfter, hasKey("foo"));
@@ -1171,7 +1171,7 @@ public class SmithyLanguageServerTest {
                 .text("")
                 .build());
 
-        server.getState().lifecycleManager().getTask(uri).get();
+        server.getState().documentTasks().getTask(uri).get();
 
         Map<String, Node> metadataAfter2 = server.getFirstProject().modelResult().unwrap().getMetadata();
         assertThat(metadataAfter2, hasKey("foo"));
@@ -1202,8 +1202,8 @@ public class SmithyLanguageServerTest {
 
                 string Bar
                 """);
-        TestWorkspace workspace = TestWorkspace.multipleModels(modelText1, modelText2);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.multipleModels(modelText1, modelText2);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         Map<String, Node> metadataBefore = server.getFirstProject().modelResult().unwrap().getMetadata();
         assertThat(metadataBefore, hasKey("foo"));
@@ -1213,12 +1213,12 @@ public class SmithyLanguageServerTest {
 
         String uri = workspace.getUri("model-1.smithy");
 
-        workspace.deleteModel("model-1.smithy");
+        workspace.deleteFile("model-1.smithy");
         server.didChangeWatchedFiles(RequestBuilders.didChangeWatchedFiles()
                 .event(uri, FileChangeType.Deleted)
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         Map<String, Node> metadataAfter = server.getFirstProject().modelResult().unwrap().getMetadata();
         assertThat(metadataAfter, hasKey("foo"));
@@ -1230,7 +1230,7 @@ public class SmithyLanguageServerTest {
     // TODO: Somehow this is flaky
     @Test
     public void addingOpenedDetachedFile() throws Exception {
-        TestWorkspace workspace = TestWorkspace.emptyWithDirSource();
+        TestProject workspace = TestProject.emptyWithDirSource();
         String filename = "main.smithy";
         String modelText = safeString("""
                 $version: "2"
@@ -1239,8 +1239,8 @@ public class SmithyLanguageServerTest {
 
                 string Foo
                 """);
-        workspace.addModel(filename, modelText);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        workspace.addFile(filename, modelText);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri("main.smithy");
 
@@ -1275,7 +1275,7 @@ public class SmithyLanguageServerTest {
                 .event(workspace.getUri("smithy-build.json"), FileChangeType.Changed)
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         assertThat(server.getState().managedUris(), hasItem(uri));
         assertThat(server.getState().isDetached(uri), is(false));
@@ -1291,8 +1291,8 @@ public class SmithyLanguageServerTest {
                 namespace com.foo
                 string Foo
                 """);
-        TestWorkspace workspace = TestWorkspace.singleModel(modelText);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.singleModel(modelText);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri("main.smithy");
 
@@ -1315,7 +1315,7 @@ public class SmithyLanguageServerTest {
                 .event(workspace.getUri("smithy-build.json"), FileChangeType.Changed)
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         assertThat(server.getState().managedUris(), hasItem(uri));
         assertThat(server.getState().isDetached(uri), is(true));
@@ -1327,7 +1327,7 @@ public class SmithyLanguageServerTest {
 
     @Test
     public void movingDetachedFile() throws Exception {
-        TestWorkspace workspace = TestWorkspace.emptyWithDirSource();
+        TestProject workspace = TestProject.emptyWithDirSource();
         String filename = "main.smithy";
         String modelText = safeString("""
                 $version: "2"
@@ -1336,8 +1336,8 @@ public class SmithyLanguageServerTest {
 
                 string Foo
                 """);
-        workspace.addModel(filename, modelText);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        workspace.addFile(filename, modelText);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri(filename);
 
@@ -1348,7 +1348,7 @@ public class SmithyLanguageServerTest {
 
         // Moving to an also detachedProjects file - the server doesn't send DidChangeWatchedFiles
         String movedFilename = "main-2.smithy";
-        workspace.moveModel(filename, movedFilename);
+        workspace.moveFile(filename, movedFilename);
         String movedUri = workspace.getUri(movedFilename);
 
         server.didClose(RequestBuilders.didClose()
@@ -1359,7 +1359,7 @@ public class SmithyLanguageServerTest {
                 .text(modelText)
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         assertThat(server.getState().managedUris().contains(uri), is(false));
         assertThat(server.getState().findProjectAndFile(uri), nullValue());
@@ -1371,7 +1371,7 @@ public class SmithyLanguageServerTest {
 
     @Test
     public void updatesDiagnosticsAfterReload() throws Exception {
-        TestWorkspace workspace = TestWorkspace.emptyWithDirSource();
+        TestProject workspace = TestProject.emptyWithDirSource();
 
         String filename1 = "model/main.smithy";
         String modelText1 = safeString("""
@@ -1383,10 +1383,10 @@ public class SmithyLanguageServerTest {
                 @foo
                 string Bar
                 """);
-        workspace.addModel(filename1, modelText1);
+        workspace.addFile(filename1, modelText1);
 
         StubClient client = new StubClient();
-        SmithyLanguageServer server = initFromWorkspace(workspace, client);
+        SmithyLanguageServer server = initAtProjectRoot(workspace, client);
 
         String uri1 = workspace.getUri(filename1);
 
@@ -1395,7 +1395,7 @@ public class SmithyLanguageServerTest {
                 .text(modelText1)
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         List<PublishDiagnosticsParams> publishedDiagnostics1 = client.diagnostics;
         assertThat(publishedDiagnostics1, hasSize(1));
@@ -1413,7 +1413,7 @@ public class SmithyLanguageServerTest {
                 @trait
                 structure foo {}
                 """);
-        workspace.addModel(filename2, modelText2);
+        workspace.addFile(filename2, modelText2);
 
         String uri2 = workspace.getUri(filename2);
 
@@ -1421,7 +1421,7 @@ public class SmithyLanguageServerTest {
                 .event(uri2, FileChangeType.Created)
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         List<PublishDiagnosticsParams> publishedDiagnostics2 = client.diagnostics;
         assertThat(publishedDiagnostics2, hasSize(2)); // sent more diagnostics
@@ -1437,8 +1437,8 @@ public class SmithyLanguageServerTest {
                 string Foo
                 """);
         String modelText2 = safeString("string Bar\n");
-        TestWorkspace workspace = TestWorkspace.multipleModels(modelText1, modelText2);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.multipleModels(modelText1, modelText2);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri("model-0.smithy");
 
@@ -1450,12 +1450,12 @@ public class SmithyLanguageServerTest {
 
     @Test
     public void invalidSyntaxDetachedProjectBecomesValid() throws Exception {
-        TestWorkspace workspace = TestWorkspace.emptyWithDirSource();
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.emptyWithDirSource();
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String filename = "main.smithy";
         String modelText = safeString("string Foo\n");
-        workspace.addModel(filename, modelText);
+        workspace.addFile(filename, modelText);
 
         String uri = workspace.getUri(filename);
         server.didOpen(RequestBuilders.didOpen()
@@ -1463,7 +1463,7 @@ public class SmithyLanguageServerTest {
                 .text(modelText)
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         assertThat(server.getState().isDetached(uri), is(true));
         ProjectAndFile projectAndFile = server.getState().findProjectAndFile(uri);
@@ -1481,7 +1481,7 @@ public class SmithyLanguageServerTest {
                         """))
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         assertThat(server.getState().isDetached(uri), is(true));
         ProjectAndFile projectAndFile1 = server.getState().findProjectAndFile(uri);
@@ -1495,11 +1495,11 @@ public class SmithyLanguageServerTest {
     // TODO: apparently flaky
     @Test
     public void addingDetachedFileWithInvalidSyntax() throws Exception {
-        TestWorkspace workspace = TestWorkspace.emptyWithDirSource();
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.emptyWithDirSource();
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String filename = "main.smithy";
-        workspace.addModel(filename, "");
+        workspace.addFile(filename, "");
 
         String uri = workspace.getUri(filename);
 
@@ -1508,7 +1508,7 @@ public class SmithyLanguageServerTest {
                 .text("")
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         assertThat(server.getState().isDetached(uri), is(true));
         ProjectAndFile projectAndFile = server.getState().findProjectAndFile(uri);
@@ -1542,7 +1542,7 @@ public class SmithyLanguageServerTest {
                 .range(LspAdapter.point(2, 0))
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         assertThat(server.getState().isDetached(uri), is(false));
         assertThat(server.getState().detachedProjects().keySet(), empty());
@@ -1563,8 +1563,8 @@ public class SmithyLanguageServerTest {
                 string Bar
                 apply Foo @length(min: 1)
                 """);
-        TestWorkspace workspace = TestWorkspace.multipleModels(modelText1, modelText2);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.multipleModels(modelText1, modelText2);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri2 = workspace.getUri("model-1.smithy");
 
@@ -1578,7 +1578,7 @@ public class SmithyLanguageServerTest {
                 .text("2")
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         assertThat(server.getFirstProject().modelResult(), hasValue(hasShapeWithId("com.foo#Bar")));
         Shape foo = server.getFirstProject().modelResult().getResult().get().expectShape(ShapeId.from("com.foo#Foo"));
@@ -1597,7 +1597,7 @@ public class SmithyLanguageServerTest {
                 .text(safeString("string Another\n"))
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         assertThat(server.getFirstProject().modelResult(), hasValue(hasShapeWithId("com.foo#Bar")));
         assertThat(server.getFirstProject().modelResult(), hasValue(hasShapeWithId("com.foo#Another")));
@@ -1608,10 +1608,10 @@ public class SmithyLanguageServerTest {
 
     @Test
     public void brokenBuildFileEventuallyConsistent() throws Exception {
-        TestWorkspace workspace = TestWorkspace.emptyWithDirSource();
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.emptyWithDirSource();
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
-        workspace.addModel("model/main.smithy", "");
+        workspace.addFile("model/main.smithy", "");
         String uri = workspace.getUri("model/main.smithy");
         server.didOpen(RequestBuilders.didOpen()
                 .uri(uri)
@@ -1666,7 +1666,7 @@ public class SmithyLanguageServerTest {
                         """))
                 .range(LspAdapter.origin())
                 .build());
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         ProjectAndFile projectAndFile = server.getState().findProjectAndFile(uri);
         assertThat(projectAndFile, notNullValue());
@@ -1692,8 +1692,8 @@ public class SmithyLanguageServerTest {
                 @trait
                 structure baz {}
                 """);
-        TestWorkspace workspace = TestWorkspace.multipleModels(modelText1, modelText2);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.multipleModels(modelText1, modelText2);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri("model-0.smithy");
 
@@ -1759,8 +1759,8 @@ public class SmithyLanguageServerTest {
                 namespace com.bar
                 string Bar
                 """);
-        TestWorkspace workspace = TestWorkspace.multipleModels(modelText1, modelText2);
-        SmithyLanguageServer server = initFromWorkspace(workspace);
+        TestProject workspace = TestProject.multipleModels(modelText1, modelText2);
+        SmithyLanguageServer server = initAtProjectRoot(workspace);
 
         String uri = workspace.getUri("model-0.smithy");
         server.didOpen(RequestBuilders.didOpen()
@@ -1787,7 +1787,7 @@ public class SmithyLanguageServerTest {
 
     @Test
     public void loadsMultipleRoots() {
-        TestWorkspace workspaceFoo = TestWorkspace.builder()
+        TestProject workspaceFoo = TestProject.builder()
                 .withPath("foo")
                 .withSourceFile("foo.smithy", """
                         $version: "2"
@@ -1796,7 +1796,7 @@ public class SmithyLanguageServerTest {
                         """)
                 .build();
 
-        TestWorkspace workspaceBar = TestWorkspace.builder()
+        TestProject workspaceBar = TestProject.builder()
                 .withPath("bar")
                 .withSourceFile("bar.smithy", """
                         $version: "2"
@@ -1805,7 +1805,7 @@ public class SmithyLanguageServerTest {
                         """)
                 .build();
 
-        SmithyLanguageServer server = initFromWorkspaces(workspaceFoo, workspaceBar);
+        SmithyLanguageServer server = initWithWorkspacesAtProjectRoots(workspaceFoo, workspaceBar);
 
         assertThat(server.getState().attachedProjects(), hasKey(workspaceFoo.getName()));
         assertThat(server.getState().attachedProjects(), hasKey(workspaceBar.getName()));
@@ -1825,7 +1825,7 @@ public class SmithyLanguageServerTest {
 
     @Test
     public void multiRootLifecycleManagement() throws Exception {
-        TestWorkspace workspaceFoo = TestWorkspace.builder()
+        TestProject workspaceFoo = TestProject.builder()
                 .withPath("foo")
                 .withSourceFile("foo.smithy", """
                         $version: "2"
@@ -1834,7 +1834,7 @@ public class SmithyLanguageServerTest {
                         """)
                 .build();
 
-        TestWorkspace workspaceBar = TestWorkspace.builder()
+        TestProject workspaceBar = TestProject.builder()
                 .withPath("bar")
                 .withSourceFile("bar.smithy", """
                         $version: "2"
@@ -1843,7 +1843,7 @@ public class SmithyLanguageServerTest {
                         """)
                 .build();
 
-        SmithyLanguageServer server = initFromWorkspaces(workspaceFoo, workspaceBar);
+        SmithyLanguageServer server = initWithWorkspacesAtProjectRoots(workspaceFoo, workspaceBar);
 
         String fooUri = workspaceFoo.getUri("foo.smithy");
         String barUri = workspaceBar.getUri("bar.smithy");
@@ -1873,7 +1873,7 @@ public class SmithyLanguageServerTest {
                 .uri(barUri)
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         Project projectFoo = server.getState().attachedProjects().get(workspaceFoo.getName());
         Project projectBar = server.getState().attachedProjects().get(workspaceBar.getName());
@@ -1887,20 +1887,20 @@ public class SmithyLanguageServerTest {
 
     @Test
     public void multiRootAddingWatchedFile() throws Exception {
-        TestWorkspace workspaceFoo = TestWorkspace.builder()
+        TestProject workspaceFoo = TestProject.builder()
                 .withPath("foo")
-                .withSourceDir(new TestWorkspace.Dir()
+                .withSourceDir(new TestProject.Dir()
                         .withPath("model")
                         .withSourceFile("main.smithy", ""))
                 .build();
-        TestWorkspace workspaceBar = TestWorkspace.builder()
+        TestProject workspaceBar = TestProject.builder()
                 .withPath("bar")
-                .withSourceDir(new TestWorkspace.Dir()
+                .withSourceDir(new TestProject.Dir()
                         .withPath("model")
                         .withSourceFile("main.smithy", ""))
                 .build();
 
-        SmithyLanguageServer server = initFromWorkspaces(workspaceFoo, workspaceBar);
+        SmithyLanguageServer server = initWithWorkspacesAtProjectRoots(workspaceFoo, workspaceBar);
 
         String fooUri = workspaceFoo.getUri("model/main.smithy");
         String barUri = workspaceBar.getUri("model/main.smithy");
@@ -1911,7 +1911,7 @@ public class SmithyLanguageServerTest {
                 namespace com.bar
                 structure Bar {}
                 """;
-        workspaceBar.addModel(newFilename, newText);
+        workspaceBar.addFile(newFilename, newText);
 
         String newUri = workspaceBar.getUri(newFilename);
 
@@ -1944,7 +1944,7 @@ public class SmithyLanguageServerTest {
                 .range(LspAdapter.point(3, 0))
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         Project projectFoo = server.getState().attachedProjects().get(workspaceFoo.getName());
         Project projectBar = server.getState().attachedProjects().get(workspaceBar.getName());
@@ -1960,20 +1960,20 @@ public class SmithyLanguageServerTest {
 
     @Test
     public void multiRootChangingBuildFile() throws Exception {
-        TestWorkspace workspaceFoo = TestWorkspace.builder()
+        TestProject workspaceFoo = TestProject.builder()
                 .withPath("foo")
-                .withSourceDir(new TestWorkspace.Dir()
+                .withSourceDir(new TestProject.Dir()
                         .withPath("model")
                         .withSourceFile("main.smithy", ""))
                 .build();
-        TestWorkspace workspaceBar = TestWorkspace.builder()
+        TestProject workspaceBar = TestProject.builder()
                 .withPath("bar")
-                .withSourceDir(new TestWorkspace.Dir()
+                .withSourceDir(new TestProject.Dir()
                         .withPath("model")
                         .withSourceFile("main.smithy", ""))
                 .build();
 
-        SmithyLanguageServer server = initFromWorkspaces(workspaceFoo, workspaceBar);
+        SmithyLanguageServer server = initWithWorkspacesAtProjectRoots(workspaceFoo, workspaceBar);
 
         String newFilename = "other.smithy";
         String newText = """
@@ -1981,7 +1981,7 @@ public class SmithyLanguageServerTest {
                 namespace com.other
                 structure Other {}
                 """;
-        workspaceBar.addModel(newFilename, newText);
+        workspaceBar.addFile(newFilename, newText);
         String newUri = workspaceBar.getUri(newFilename);
 
         server.didOpen(RequestBuilders.didOpen()
@@ -2024,7 +2024,7 @@ public class SmithyLanguageServerTest {
                 .range(LspAdapter.origin())
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         assertThat(server.getState().detachedProjects(), anEmptyMap());
         assertThat(server.getState().findProjectAndFile(newUri), notNullValue());
@@ -2051,19 +2051,19 @@ public class SmithyLanguageServerTest {
                         namespace com.foo
                         structure Foo {}
                         """;
-        TestWorkspace workspaceFoo = TestWorkspace.builder()
+        TestProject workspaceFoo = TestProject.builder()
                 .withPath("foo")
                 .withSourceFile("foo.smithy", fooModel)
                 .build();
 
-        SmithyLanguageServer server = initFromWorkspace(workspaceFoo);
+        SmithyLanguageServer server = initAtProjectRoot(workspaceFoo);
 
         String barModel = """
                         $version: "2"
                         namespace com.bar
                         structure Bar {}
                         """;
-        TestWorkspace workspaceBar = TestWorkspace.builder()
+        TestProject workspaceBar = TestProject.builder()
                 .withPath("bar")
                 .withSourceFile("bar.smithy", barModel)
                 .build();
@@ -2082,7 +2082,7 @@ public class SmithyLanguageServerTest {
                 .text(barModel)
                 .build());
 
-        server.getState().lifecycleManager().waitForAllTasks();
+        server.getState().documentTasks().waitForAllTasks();
 
         assertThat(server.getState().attachedProjects(), hasKey(workspaceFoo.getName()));
         assertThat(server.getState().attachedProjects(), hasKey(workspaceBar.getName()));
@@ -2107,7 +2107,7 @@ public class SmithyLanguageServerTest {
                         namespace com.foo
                         structure Foo {}
                         """;
-        TestWorkspace workspaceFoo = TestWorkspace.builder()
+        TestProject workspaceFoo = TestProject.builder()
                 .withPath("foo")
                 .withSourceFile("foo.smithy", fooModel)
                 .build();
@@ -2117,12 +2117,12 @@ public class SmithyLanguageServerTest {
                         namespace com.bar
                         structure Bar {}
                         """;
-        TestWorkspace workspaceBar = TestWorkspace.builder()
+        TestProject workspaceBar = TestProject.builder()
                 .withPath("bar")
                 .withSourceFile("bar.smithy", barModel)
                 .build();
 
-        SmithyLanguageServer server = initFromWorkspaces(workspaceFoo, workspaceBar);
+        SmithyLanguageServer server = initWithWorkspacesAtProjectRoots(workspaceFoo, workspaceBar);
 
         server.didOpen(RequestBuilders.didOpen()
                 .uri(workspaceFoo.getUri("foo.smithy"))
@@ -2166,7 +2166,7 @@ public class SmithyLanguageServerTest {
                         namespace com.foo
                         structure Foo {}
                         """;
-        TestWorkspace workspaceFoo = TestWorkspace.builder()
+        TestProject workspaceFoo = TestProject.builder()
                 .withRoot(root)
                 .withPath("foo")
                 .withSourceFile("foo.smithy", fooModel)
@@ -2177,7 +2177,7 @@ public class SmithyLanguageServerTest {
                         namespace com.bar
                         structure Bar {}
                         """;
-        TestWorkspace workspaceBar = TestWorkspace.builder()
+        TestProject workspaceBar = TestProject.builder()
                 .withRoot(root)
                 .withPath("bar")
                 .withSourceFile("bar.smithy", barModel)
@@ -2203,7 +2203,7 @@ public class SmithyLanguageServerTest {
                         namespace com.foo
                         structure Foo {}
                         """;
-        TestWorkspace workspaceFoo = TestWorkspace.builder()
+        TestProject workspaceFoo = TestProject.builder()
                 .withRoot(root)
                 .withPath("foo")
                 .withSourceFile("foo.smithy", fooModel)
@@ -2214,7 +2214,7 @@ public class SmithyLanguageServerTest {
                         namespace com.bar
                         structure Bar {}
                         """;
-        TestWorkspace workspaceBar = TestWorkspace.builder()
+        TestProject workspaceBar = TestProject.builder()
                 .withRoot(root)
                 .withPath("bar")
                 .withSourceFile("bar.smithy", barModel)
@@ -2241,7 +2241,7 @@ public class SmithyLanguageServerTest {
                         namespace com.foo
                         structure Foo {}
                         """;
-        TestWorkspace workspaceFoo = TestWorkspace.builder()
+        TestProject workspaceFoo = TestProject.builder()
                 .withRoot(root)
                 .withPath("foo")
                 .withSourceFile("foo.smithy", fooModel)
@@ -2252,7 +2252,7 @@ public class SmithyLanguageServerTest {
                         namespace com.bar
                         structure Bar {}
                         """;
-        TestWorkspace workspaceBar = TestWorkspace.builder()
+        TestProject workspaceBar = TestProject.builder()
                 .withRoot(root)
                 .withPath("bar")
                 .withSourceFile("bar.smithy", barModel)
@@ -2265,7 +2265,7 @@ public class SmithyLanguageServerTest {
                 workspaceBar.getName()));
         assertThat(server.getState().workspacePaths(), contains(root));
 
-        workspaceFoo.deleteModel("smithy-build.json");
+        workspaceFoo.deleteFile("smithy-build.json");
 
         server.didChangeWatchedFiles(RequestBuilders.didChangeWatchedFiles()
                 .event(workspaceFoo.getUri("smithy-build.json"), FileChangeType.Deleted)
@@ -2285,7 +2285,7 @@ public class SmithyLanguageServerTest {
                         namespace com.foo
                         structure Foo {}
                         """;
-        TestWorkspace workspaceFoo = TestWorkspace.builder()
+        TestProject workspaceFoo = TestProject.builder()
                 .withRoot(root)
                 .withPath("foo")
                 .withSourceFile("foo.smithy", fooModel)
@@ -2296,7 +2296,7 @@ public class SmithyLanguageServerTest {
                         namespace com.bar
                         structure Bar {}
                         """;
-        TestWorkspace workspaceBar = TestWorkspace.builder()
+        TestProject workspaceBar = TestProject.builder()
                 .withRoot(root)
                 .withPath("bar")
                 .withSourceFile("bar.smithy", barModel)
@@ -2309,7 +2309,7 @@ public class SmithyLanguageServerTest {
                         namespace com.baz
                         structure Baz {}
                         """;
-        workspaceFoo.addModel("baz.smithy", bazModel);
+        workspaceFoo.addFile("baz.smithy", bazModel);
         server.didOpen(RequestBuilders.didOpen()
                 .uri(workspaceFoo.getUri("baz.smithy"))
                 .text(bazModel)
@@ -2321,7 +2321,7 @@ public class SmithyLanguageServerTest {
                 workspaceBar.getName()));
         assertThat(server.getState().detachedProjects().keySet(), contains(workspaceFoo.getUri("baz.smithy")));
 
-        workspaceFoo.addModel(".smithy-project.json", """
+        workspaceFoo.addFile(".smithy-project.json", """
                 {
                     "sources": ["baz.smithy"]
                 }""");
@@ -2345,7 +2345,7 @@ public class SmithyLanguageServerTest {
                         namespace com.foo
                         structure Foo {}
                         """;
-        TestWorkspace workspaceFoo = TestWorkspace.builder()
+        TestProject workspaceFoo = TestProject.builder()
                 .withRoot(root)
                 .withPath("foo")
                 .withSourceFile("foo.smithy", fooModel)
@@ -2355,8 +2355,8 @@ public class SmithyLanguageServerTest {
                         namespace com.baz
                         structure Baz {}
                         """;
-        workspaceFoo.addModel("baz.smithy", bazModel);
-        workspaceFoo.addModel(".smithy-project.json", """
+        workspaceFoo.addFile("baz.smithy", bazModel);
+        workspaceFoo.addFile(".smithy-project.json", """
                 {
                     "sources": ["baz.smithy"]
                 }""");
@@ -2366,7 +2366,7 @@ public class SmithyLanguageServerTest {
                         namespace com.bar
                         structure Bar {}
                         """;
-        TestWorkspace workspaceBar = TestWorkspace.builder()
+        TestProject workspaceBar = TestProject.builder()
                 .withRoot(root)
                 .withPath("bar")
                 .withSourceFile("bar.smithy", barModel)
@@ -2385,7 +2385,7 @@ public class SmithyLanguageServerTest {
                 workspaceBar.getName()));
         assertThat(server.getState().detachedProjects().keySet(), empty());
 
-        workspaceFoo.deleteModel(".smithy-project.json");
+        workspaceFoo.deleteFile(".smithy-project.json");
         server.didChangeWatchedFiles(RequestBuilders.didChangeWatchedFiles()
                 .event(workspaceFoo.getUri(".smithy-project.json"), FileChangeType.Deleted)
                 .build());
@@ -2398,8 +2398,8 @@ public class SmithyLanguageServerTest {
 
     @Test
     public void tracksJsonFiles() {
-        TestWorkspace workspace = TestWorkspace.emptyWithDirSource();
-        workspace.addModel("model/main.json","""
+        TestProject workspace = TestProject.emptyWithDirSource();
+        workspace.addFile("model/main.json","""
                 {
                     "smithy": "2.0",
                     "shapes": {
@@ -2409,7 +2409,7 @@ public class SmithyLanguageServerTest {
                     }
                 }
                 """);
-        SmithyLanguageServer server = initFromWorkspaces(workspace);
+        SmithyLanguageServer server = initWithWorkspacesAtProjectRoots(workspace);
 
         assertServerState(server, new ServerState(
                 Map.of(
@@ -2423,8 +2423,8 @@ public class SmithyLanguageServerTest {
 
     @Test
     public void tracksBuildFileChanges() {
-        TestWorkspace workspace = TestWorkspace.emptyWithDirSource();
-        SmithyLanguageServer server = initFromWorkspaces(workspace);
+        TestProject workspace = TestProject.emptyWithDirSource();
+        SmithyLanguageServer server = initWithWorkspacesAtProjectRoots(workspace);
 
         String smithyBuildJson = workspace.readFile("smithy-build.json");
         String uri = workspace.getUri("smithy-build.json");
@@ -2463,8 +2463,8 @@ public class SmithyLanguageServerTest {
 
     @Test
     public void reloadsProjectOnBuildFileSave() {
-        TestWorkspace workspace = TestWorkspace.emptyWithDirSource();
-        SmithyLanguageServer server = initFromWorkspaces(workspace);
+        TestProject workspace = TestProject.emptyWithDirSource();
+        SmithyLanguageServer server = initWithWorkspacesAtProjectRoots(workspace);
 
         String buildJson = workspace.readFile("smithy-build.json");
         String buildJsonUri = workspace.getUri("smithy-build.json");
@@ -2478,7 +2478,7 @@ public class SmithyLanguageServerTest {
                 namespace com.foo
                 string Foo
                 """;
-        workspace.addModel("foo.smithy", model);
+        workspace.addFile("foo.smithy", model);
         server.didOpen(RequestBuilders.didOpen()
                 .uri(workspace.getUri("foo.smithy"))
                 .text(model)
@@ -2547,17 +2547,17 @@ public class SmithyLanguageServerTest {
         }
     }
 
-    public static SmithyLanguageServer initFromWorkspace(TestWorkspace workspace) {
-        return initFromWorkspace(workspace, new StubClient());
+    public static SmithyLanguageServer initAtProjectRoot(TestProject project) {
+        return initAtProjectRoot(project, new StubClient());
     }
 
-    public static SmithyLanguageServer initFromWorkspace(TestWorkspace workspace, LanguageClient client) {
+    public static SmithyLanguageServer initAtProjectRoot(TestProject project, LanguageClient client) {
         try {
             SmithyLanguageServer server = new SmithyLanguageServer();
             server.connect(client);
 
             server.initialize(RequestBuilders.initialize()
-                    .workspaceFolder(workspace.getRoot().toUri().toString(), workspace.getName())
+                    .workspaceFolder(project.getRoot().toUri().toString(), project.getName())
                     .build())
                     .get();
 
@@ -2567,14 +2567,14 @@ public class SmithyLanguageServerTest {
         }
     }
 
-    public static SmithyLanguageServer initFromWorkspaces(TestWorkspace... workspaces) {
+    public static SmithyLanguageServer initWithWorkspacesAtProjectRoots(TestProject... projects) {
         LanguageClient client = new StubClient();
         SmithyLanguageServer server = new SmithyLanguageServer();
         server.connect(client);
 
         RequestBuilders.Initialize initialize = RequestBuilders.initialize();
-        for (TestWorkspace workspace : workspaces) {
-            initialize.workspaceFolder(workspace.getRoot().toUri().toString(), workspace.getName());
+        for (TestProject project : projects) {
+            initialize.workspaceFolder(project.getRoot().toUri().toString(), project.getName());
         }
 
         try {

@@ -10,8 +10,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.eclipse.lsp4j.DidChangeWatchedFilesRegistrationOptions;
+import org.eclipse.lsp4j.DocumentFilter;
 import org.eclipse.lsp4j.FileSystemWatcher;
 import org.eclipse.lsp4j.Registration;
+import org.eclipse.lsp4j.TextDocumentChangeRegistrationOptions;
+import org.eclipse.lsp4j.TextDocumentRegistrationOptions;
+import org.eclipse.lsp4j.TextDocumentSaveRegistrationOptions;
+import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.Unregistration;
 import org.eclipse.lsp4j.WatchKind;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -32,7 +37,7 @@ import software.amazon.smithy.lsp.project.Project;
  * everything, since these events should be rarer. But we can optimize it in the
  * future.
  */
-final class FileWatcherRegistrations {
+final class FileRegistrations {
     private static final Integer WATCH_FILE_KIND = WatchKind.Delete | WatchKind.Create;
     private static final String WATCH_BUILD_FILES_ID = "WatchSmithyBuildFiles";
     private static final String WATCH_SMITHY_FILES_ID = "WatchSmithyFiles";
@@ -43,8 +48,53 @@ final class FileWatcherRegistrations {
     private static final List<Unregistration> BUILD_FILE_WATCHER_UNREGISTRATIONS = List.of(new Unregistration(
             WATCH_BUILD_FILES_ID,
             WATCH_FILES_METHOD));
+    private static final List<Registration> DOCUMENT_SYNC_REGISTRATIONS;
 
-    private FileWatcherRegistrations() {
+    static {
+        List<DocumentFilter> buildDocumentSelector = List.of(
+                new DocumentFilter("json", "file", "**/{smithy-build,.smithy-project}.json"));
+
+        // Sync on changes/save/open/close for any build file
+        var openCloseBuildOpts = new TextDocumentRegistrationOptions(buildDocumentSelector);
+        var changeBuildOpts = new TextDocumentChangeRegistrationOptions(TextDocumentSyncKind.Incremental);
+        changeBuildOpts.setDocumentSelector(buildDocumentSelector);
+        var saveBuildOpts = new TextDocumentSaveRegistrationOptions();
+        saveBuildOpts.setDocumentSelector(buildDocumentSelector);
+
+        DocumentFilter smithyFilter = new DocumentFilter();
+        smithyFilter.setLanguage("smithy");
+        smithyFilter.setScheme("file");
+        List<DocumentFilter> smithyDocumentSelector = List.of(smithyFilter);
+
+        DocumentFilter smithyJarFilter = new DocumentFilter();
+        smithyJarFilter.setLanguage("smithy");
+        smithyJarFilter.setScheme("smithyjar");
+        List<DocumentFilter> smithyAndSmithyJarDocumentSelector = List.of(smithyFilter, smithyJarFilter);
+
+        // Sync on open/close for smithy and smithyjar files (which are readonly)
+        var openCloseSmithyOpts = new TextDocumentRegistrationOptions(smithyAndSmithyJarDocumentSelector);
+        // Sync on change/save for smithy files
+        var changeSmithyOpts = new TextDocumentChangeRegistrationOptions(TextDocumentSyncKind.Incremental);
+        changeSmithyOpts.setDocumentSelector(smithyDocumentSelector);
+        var saveSmithyOpts = new TextDocumentSaveRegistrationOptions();
+        saveSmithyOpts.setDocumentSelector(smithyDocumentSelector);
+
+        DOCUMENT_SYNC_REGISTRATIONS = List.of(
+                new Registration("SyncSmithyFiles/Open", "textDocument/didOpen", openCloseSmithyOpts),
+                new Registration("SyncSmithyFiles/Close", "textDocument/didClose", openCloseSmithyOpts),
+                new Registration("SyncSmithyFiles/Change", "textDocument/didChange", changeSmithyOpts),
+                new Registration("SyncSmithyFiles/Save", "textDocument/didSave", saveBuildOpts),
+                new Registration("SyncSmithyBuildFiles/Open", "textDocument/didOpen", openCloseBuildOpts),
+                new Registration("SyncSmithyBuildFiles/Close", "textDocument/didClose", openCloseBuildOpts),
+                new Registration("SyncSmithyBuildFiles/Change", "textDocument/didChange", changeBuildOpts),
+                new Registration("SyncSmithyBuildFiles/Save", "textDocument/didSave", saveBuildOpts));
+    }
+
+    private FileRegistrations() {
+    }
+
+    static List<Registration> getDocumentSyncRegistrations() {
+        return DOCUMENT_SYNC_REGISTRATIONS;
     }
 
     /**

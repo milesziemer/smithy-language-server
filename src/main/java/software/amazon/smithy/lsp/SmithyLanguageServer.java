@@ -53,7 +53,6 @@ import org.eclipse.lsp4j.DidChangeWorkspaceFoldersParams;
 import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
-import org.eclipse.lsp4j.DocumentFilter;
 import org.eclipse.lsp4j.DocumentFormattingParams;
 import org.eclipse.lsp4j.DocumentSymbol;
 import org.eclipse.lsp4j.DocumentSymbolParams;
@@ -74,11 +73,8 @@ import org.eclipse.lsp4j.RegistrationParams;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.SymbolInformation;
 import org.eclipse.lsp4j.SymbolKind;
-import org.eclipse.lsp4j.TextDocumentChangeRegistrationOptions;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
-import org.eclipse.lsp4j.TextDocumentRegistrationOptions;
-import org.eclipse.lsp4j.TextDocumentSaveRegistrationOptions;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.TextEdit;
 import org.eclipse.lsp4j.Unregistration;
@@ -136,6 +132,7 @@ public class SmithyLanguageServer implements
         capabilities.setHoverProvider(true);
         capabilities.setDocumentFormattingProvider(true);
         capabilities.setDocumentSymbolProvider(true);
+        capabilities.setInlayHintProvider(true);
 
         WorkspaceFoldersOptions workspaceFoldersOptions = new WorkspaceFoldersOptions();
         workspaceFoldersOptions.setSupported(true);
@@ -251,23 +248,23 @@ public class SmithyLanguageServer implements
     }
 
     private CompletableFuture<Void> registerSmithyFileWatchers() {
-        List<Registration> registrations = FileWatcherRegistrations.getSmithyFileWatcherRegistrations(
+        List<Registration> registrations = FileRegistrations.getSmithyFileWatcherRegistrations(
                 state.attachedProjects().values());
         return client.registerCapability(new RegistrationParams(registrations));
     }
 
     private CompletableFuture<Void> unregisterSmithyFileWatchers() {
-        List<Unregistration> unregistrations = FileWatcherRegistrations.getSmithyFileWatcherUnregistrations();
+        List<Unregistration> unregistrations = FileRegistrations.getSmithyFileWatcherUnregistrations();
         return client.unregisterCapability(new UnregistrationParams(unregistrations));
     }
 
     private CompletableFuture<Void> registerWorkspaceBuildFileWatchers() {
-        var registrations = FileWatcherRegistrations.getBuildFileWatcherRegistrations(state.workspacePaths());
+        var registrations = FileRegistrations.getBuildFileWatcherRegistrations(state.workspacePaths());
         return client.registerCapability(new RegistrationParams(registrations));
     }
 
     private CompletableFuture<Void> unregisterWorkspaceBuildFileWatchers() {
-        var unregistrations = FileWatcherRegistrations.getBuildFileWatcherUnregistrations();
+        var unregistrations = FileRegistrations.getBuildFileWatcherUnregistrations();
         return client.unregisterCapability(new UnregistrationParams(unregistrations));
     }
 
@@ -275,7 +272,7 @@ public class SmithyLanguageServer implements
     public void initialized(InitializedParams params) {
         // We have to do this in `initialized` because we can't send dynamic registrations in `initialize`.
         if (isDynamicSyncRegistrationSupported()) {
-            registerDocumentSynchronization();
+            client.registerCapability(new RegistrationParams(FileRegistrations.getDocumentSyncRegistrations()));
         }
 
         registerWorkspaceBuildFileWatchers();
@@ -287,45 +284,6 @@ public class SmithyLanguageServer implements
                && clientCapabilities.getTextDocument() != null
                && clientCapabilities.getTextDocument().getSynchronization() != null
                && clientCapabilities.getTextDocument().getSynchronization().getDynamicRegistration();
-    }
-
-    private void registerDocumentSynchronization() {
-        List<DocumentFilter> buildDocumentSelector = List.of(
-                new DocumentFilter("json", "file", "**/{smithy-build,.smithy-project}.json"));
-
-        var openCloseBuildOpts = new TextDocumentRegistrationOptions(buildDocumentSelector);
-        var changeBuildOpts = new TextDocumentChangeRegistrationOptions(TextDocumentSyncKind.Incremental);
-        changeBuildOpts.setDocumentSelector(buildDocumentSelector);
-        var saveBuildOpts = new TextDocumentSaveRegistrationOptions();
-        saveBuildOpts.setDocumentSelector(buildDocumentSelector);
-
-        client.registerCapability(new RegistrationParams(List.of(
-                new Registration("SyncSmithyBuildFiles/Open", "textDocument/didOpen", openCloseBuildOpts),
-                new Registration("SyncSmithyBuildFiles/Close", "textDocument/didClose", openCloseBuildOpts),
-                new Registration("SyncSmithyBuildFiles/Change", "textDocument/didChange", changeBuildOpts),
-                new Registration("SyncSmithyBuildFiles/Save", "textDocument/didSave", saveBuildOpts))));
-
-        DocumentFilter smithyFilter = new DocumentFilter();
-        smithyFilter.setLanguage("smithy");
-        smithyFilter.setScheme("file");
-
-        DocumentFilter smithyJarFilter = new DocumentFilter();
-        smithyJarFilter.setLanguage("smithy");
-        smithyJarFilter.setScheme("smithyjar");
-
-        List<DocumentFilter> smithyDocumentSelector = List.of(smithyFilter);
-
-        var openCloseSmithyOpts = new TextDocumentRegistrationOptions(List.of(smithyFilter, smithyJarFilter));
-        var changeSmithyOpts = new TextDocumentChangeRegistrationOptions(TextDocumentSyncKind.Incremental);
-        changeSmithyOpts.setDocumentSelector(smithyDocumentSelector);
-        var saveSmithyOpts = new TextDocumentSaveRegistrationOptions();
-        saveSmithyOpts.setDocumentSelector(smithyDocumentSelector);
-
-        client.registerCapability(new RegistrationParams(List.of(
-                new Registration("SyncSmithyFiles/Open", "textDocument/didOpen", openCloseSmithyOpts),
-                new Registration("SyncSmithyFiles/Close", "textDocument/didClose", openCloseSmithyOpts),
-                new Registration("SyncSmithyFiles/Change", "textDocument/didChange", changeSmithyOpts),
-                new Registration("SyncSmithyFiles/Save", "textDocument/didSave", saveBuildOpts))));
     }
 
     @Override
@@ -480,7 +438,7 @@ public class SmithyLanguageServer implements
 
         String uri = params.getTextDocument().getUri();
 
-        state.lifecycleManager().cancelTask(uri);
+        state.documentTasks().cancelTask(uri);
 
         ProjectAndFile projectAndFile = state.findProjectAndFile(uri);
         if (projectAndFile == null) {
@@ -514,7 +472,7 @@ public class SmithyLanguageServer implements
             CompletableFuture<Void> future = CompletableFuture
                     .runAsync(() -> project.updateModelWithoutValidating(uri))
                     .thenComposeAsync(unused -> sendFileDiagnostics(uri));
-            state.lifecycleManager().putTask(uri, future);
+            state.documentTasks().putTask(uri, future);
         }
     }
 
@@ -524,7 +482,7 @@ public class SmithyLanguageServer implements
 
         String uri = params.getTextDocument().getUri();
 
-        state.lifecycleManager().cancelTask(uri);
+        state.documentTasks().cancelTask(uri);
         state.managedUris().add(uri);
 
         String text = params.getTextDocument().getText();
@@ -535,7 +493,7 @@ public class SmithyLanguageServer implements
             state.createDetachedProject(uri, text);
         }
 
-        state.lifecycleManager().putTask(uri, sendFileDiagnostics(uri));
+        state.documentTasks().putTask(uri, sendFileDiagnostics(uri));
     }
 
     @Override
@@ -547,7 +505,7 @@ public class SmithyLanguageServer implements
 
         if (state.isDetached(uri)) {
             // Only cancel tasks for detachedProjects projects, since we're dropping the project
-            state.lifecycleManager().cancelTask(uri);
+            state.documentTasks().cancelTask(uri);
             state.detachedProjects().remove(uri);
         }
 
@@ -559,7 +517,7 @@ public class SmithyLanguageServer implements
         LOGGER.finest("DidSave");
 
         String uri = params.getTextDocument().getUri();
-        state.lifecycleManager().cancelTask(uri);
+        state.documentTasks().cancelTask(uri);
 
         ProjectAndFile projectAndFile = state.findProjectAndFile(uri);
         if (projectAndFile == null) {
@@ -582,7 +540,7 @@ public class SmithyLanguageServer implements
             CompletableFuture<Void> future = CompletableFuture
                     .runAsync(() -> project.updateAndValidateModel(uri))
                     .thenCompose(unused -> sendFileDiagnostics(uri));
-            state.lifecycleManager().putTask(uri, future);
+            state.documentTasks().putTask(uri, future);
         }
     }
 
@@ -756,7 +714,7 @@ public class SmithyLanguageServer implements
 
     private void sendFileDiagnosticsForManagedDocuments() {
         for (String managedDocumentUri : state.managedUris()) {
-            state.lifecycleManager().putOrComposeTask(managedDocumentUri, sendFileDiagnostics(managedDocumentUri));
+            state.documentTasks().putOrComposeTask(managedDocumentUri, sendFileDiagnostics(managedDocumentUri));
         }
     }
 

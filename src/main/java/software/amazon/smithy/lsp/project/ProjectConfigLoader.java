@@ -77,10 +77,6 @@ public final class ProjectConfigLoader {
     private ProjectConfigLoader() {
     }
 
-    static Result<ProjectConfig, List<Exception>> loadFromRoot(Path workspaceRoot) {
-        return loadFromRoot(workspaceRoot, new ServerState());
-    }
-
     static Result<ProjectConfig, List<Exception>> loadFromRoot(Path workspaceRoot, ServerState state) {
         SmithyBuildConfig.Builder builder = SmithyBuildConfig.builder();
         List<Exception> exceptions = new ArrayList<>();

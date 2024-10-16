@@ -29,7 +29,8 @@ import java.util.List;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
-import software.amazon.smithy.lsp.TestWorkspace;
+import software.amazon.smithy.lsp.ServerState;
+import software.amazon.smithy.lsp.TestProject;
 import software.amazon.smithy.lsp.document.Document;
 import software.amazon.smithy.lsp.protocol.LspAdapter;
 import software.amazon.smithy.lsp.util.Result;
@@ -46,7 +47,7 @@ public class ProjectTest {
     @Test
     public void loadsFlatProject() {
         Path root = toPath(getClass().getResource("flat"));
-        Project project = ProjectLoader.load(root).unwrap();
+        Project project = loadProjectAt(root).unwrap();
 
         assertThat(project.root(), equalTo(root));
         assertThat(project.sources(), hasItem(root.resolve("main.smithy")));
@@ -59,7 +60,7 @@ public class ProjectTest {
     @Test
     public void loadsProjectWithMavenDep() {
         Path root = toPath(getClass().getResource("maven-dep"));
-        Project project = ProjectLoader.load(root).unwrap();
+        Project project = loadProjectAt(root).unwrap();
 
         assertThat(project.root(), equalTo(root));
         assertThat(project.sources(), hasItem(root.resolve("main.smithy")));
@@ -72,7 +73,7 @@ public class ProjectTest {
     @Test
     public void loadsProjectWithSubdir() {
         Path root = toPath(getClass().getResource("subdirs"));
-        Project project = ProjectLoader.load(root).unwrap();
+        Project project = loadProjectAt(root).unwrap();
 
         assertThat(project.root(), equalTo(root));
         assertThat(project.sources(), hasItems(
@@ -92,7 +93,7 @@ public class ProjectTest {
     @Test
     public void loadsModelWithUnknownTrait() {
         Path root = toPath(getClass().getResource("unknown-trait"));
-        Project project = ProjectLoader.load(root).unwrap();
+        Project project = loadProjectAt(root).unwrap();
 
         assertThat(project.root(), equalTo(root));
         assertThat(project.sources(), hasItem(root.resolve("main.smithy")));
@@ -109,7 +110,7 @@ public class ProjectTest {
     @Test
     public void loadsWhenModelHasInvalidSyntax() {
         Path root = toPath(getClass().getResource("invalid-syntax"));
-        Project project = ProjectLoader.load(root).unwrap();
+        Project project = loadProjectAt(root).unwrap();
 
         assertThat(project.root(), equalTo(root));
         assertThat(project.sources(), hasItem(root.resolve("main.smithy")));
@@ -143,7 +144,7 @@ public class ProjectTest {
     @Test
     public void loadsProjectWithMultipleNamespaces() {
         Path root = toPath(getClass().getResource("multiple-namespaces"));
-        Project project = ProjectLoader.load(root).unwrap();
+        Project project = loadProjectAt(root).unwrap();
 
         assertThat(project.sources(), hasItem(root.resolve("model")));
         assertThat(project.modelResult().getValidationEvents(), empty());
@@ -179,7 +180,7 @@ public class ProjectTest {
     @Test
     public void loadsProjectWithExternalJars() {
         Path root = toPath(getClass().getResource("external-jars"));
-        Result<Project, List<Exception>> result = ProjectLoader.load(root);
+        Result<Project, List<Exception>> result = loadProjectAt(root);
 
         assertThat(result.isOk(), is(true));
         Project project = result.unwrap();
@@ -203,7 +204,7 @@ public class ProjectTest {
     @Test
     public void failsLoadingInvalidSmithyBuildJson() {
         Path root = toPath(getClass().getResource("broken/missing-version"));
-        Result<Project, List<Exception>> result = ProjectLoader.load(root);
+        Result<Project, List<Exception>> result = loadProjectAt(root);
 
         assertThat(result.isErr(), is(true));
     }
@@ -211,7 +212,7 @@ public class ProjectTest {
     @Test
     public void failsLoadingUnparseableSmithyBuildJson() {
         Path root = toPath(getClass().getResource("broken/parse-failure"));
-        Result<Project, List<Exception>> result = ProjectLoader.load(root);
+        Result<Project, List<Exception>> result = loadProjectAt(root);
 
         assertThat(result.isErr(), is(true));
     }
@@ -219,7 +220,7 @@ public class ProjectTest {
     @Test
     public void doesntFailLoadingProjectWithNonExistingSource() {
         Path root = toPath(getClass().getResource("broken/source-doesnt-exist"));
-        Result<Project, List<Exception>> result = ProjectLoader.load(root);
+        Result<Project, List<Exception>> result = loadProjectAt(root);
 
         assertThat(result.isErr(), is(false));
         assertThat(result.unwrap().smithyFiles().size(), equalTo(1)); // still have the prelude
@@ -229,7 +230,7 @@ public class ProjectTest {
     @Test
     public void failsLoadingUnresolvableMavenDependency() {
         Path root = toPath(getClass().getResource("broken/unresolvable-maven-dependency"));
-        Result<Project, List<Exception>> result = ProjectLoader.load(root);
+        Result<Project, List<Exception>> result = loadProjectAt(root);
 
         assertThat(result.isErr(), is(true));
     }
@@ -237,7 +238,7 @@ public class ProjectTest {
     @Test
     public void failsLoadingUnresolvableProjectDependency() {
         Path root = toPath(getClass().getResource("broken/unresolvable-maven-dependency"));
-        Result<Project, List<Exception>> result = ProjectLoader.load(root);
+        Result<Project, List<Exception>> result = loadProjectAt(root);
 
         assertThat(result.isErr(), is(true));
     }
@@ -245,7 +246,7 @@ public class ProjectTest {
     @Test
     public void loadsProjectWithUnNormalizedDirs() {
         Path root = toPath(getClass().getResource("unnormalized-dirs"));
-        Project project = ProjectLoader.load(root).unwrap();
+        Project project = loadProjectAt(root).unwrap();
 
         assertThat(project.root(), equalTo(root));
         assertThat(project.sources(), hasItems(
@@ -274,8 +275,8 @@ public class ProjectTest {
                 namespace com.foo
                 string Bar
                 """;
-        TestWorkspace workspace = TestWorkspace.multipleModels(m1, m2);
-        Project project = ProjectLoader.load(workspace.getRoot()).unwrap();
+        TestProject workspace = TestProject.multipleModels(m1, m2);
+        Project project = loadProjectAt(workspace.getRoot()).unwrap();
 
         Shape bar = project.modelResult().unwrap().expectShape(ShapeId.from("com.foo#Bar"));
         assertThat(bar.hasTrait("length"), is(true));
@@ -305,8 +306,8 @@ public class ProjectTest {
                 namespace com.foo
                 string Bar
                 """;
-        TestWorkspace workspace = TestWorkspace.multipleModels(m1, m2);
-        Project project = ProjectLoader.load(workspace.getRoot()).unwrap();
+        TestProject workspace = TestProject.multipleModels(m1, m2);
+        Project project = loadProjectAt(workspace.getRoot()).unwrap();
 
         Shape bar = project.modelResult().unwrap().expectShape(ShapeId.from("com.foo#Bar"));
         assertThat(bar.hasTrait("tags"), is(true));
@@ -342,8 +343,8 @@ public class ProjectTest {
                 namespace com.foo
                 apply Baz @length(min: 1)
                 """;
-        TestWorkspace workspace = TestWorkspace.multipleModels(m1, m2, m3);
-        Project project = ProjectLoader.load(workspace.getRoot()).unwrap();
+        TestProject workspace = TestProject.multipleModels(m1, m2, m3);
+        Project project = loadProjectAt(workspace.getRoot()).unwrap();
 
         Shape bar = project.modelResult().unwrap().expectShape(ShapeId.from("com.foo#Bar"));
         Shape baz = project.modelResult().unwrap().expectShape(ShapeId.from("com.foo#Baz"));
@@ -384,8 +385,8 @@ public class ProjectTest {
                 namespace com.foo
                 apply Bar @length(min: 1)
                 """;
-        TestWorkspace workspace = TestWorkspace.multipleModels(m1, m2, m3);
-        Project project = ProjectLoader.load(workspace.getRoot()).unwrap();
+        TestProject workspace = TestProject.multipleModels(m1, m2, m3);
+        Project project = loadProjectAt(workspace.getRoot()).unwrap();
 
         Shape bar = project.modelResult().unwrap().expectShape(ShapeId.from("com.foo#Bar"));
         assertThat(bar.hasTrait("tags"), is(true));
@@ -424,8 +425,8 @@ public class ProjectTest {
                 namespace com.foo
                 apply Bar @tags(["bar"])
                 """;
-        TestWorkspace workspace = TestWorkspace.multipleModels(m1, m2, m3);
-        Project project = ProjectLoader.load(workspace.getRoot()).unwrap();
+        TestProject workspace = TestProject.multipleModels(m1, m2, m3);
+        Project project = loadProjectAt(workspace.getRoot()).unwrap();
 
         Shape bar = project.modelResult().unwrap().expectShape(ShapeId.from("com.foo#Bar"));
         assertThat(bar.hasTrait("tags"), is(true));
@@ -455,8 +456,8 @@ public class ProjectTest {
                 string Bar
                 apply Foo @length(min: 1)
                 """;
-        TestWorkspace workspace = TestWorkspace.multipleModels(m1, m2);
-        Project project = ProjectLoader.load(workspace.getRoot()).unwrap();
+        TestProject workspace = TestProject.multipleModels(m1, m2);
+        Project project = loadProjectAt(workspace.getRoot()).unwrap();
 
         Shape foo = project.modelResult().unwrap().expectShape(ShapeId.from("com.foo#Foo"));
         assertThat(foo.hasTrait("length"), is(true));
@@ -486,8 +487,8 @@ public class ProjectTest {
                 string Bar
                 apply Foo @tags(["foo"])
                 """;
-        TestWorkspace workspace = TestWorkspace.multipleModels(m1, m2);
-        Project project = ProjectLoader.load(workspace.getRoot()).unwrap();
+        TestProject workspace = TestProject.multipleModels(m1, m2);
+        Project project = loadProjectAt(workspace.getRoot()).unwrap();
 
         Shape foo = project.modelResult().unwrap().expectShape(ShapeId.from("com.foo#Foo"));
         assertThat(foo.hasTrait("tags"), is(true));
@@ -518,8 +519,8 @@ public class ProjectTest {
                 string Bar
                 apply Foo @tags(["foo"])
                 """;
-        TestWorkspace workspace = TestWorkspace.multipleModels(m1, m2);
-        Project project = ProjectLoader.load(workspace.getRoot()).unwrap();
+        TestProject workspace = TestProject.multipleModels(m1, m2);
+        Project project = loadProjectAt(workspace.getRoot()).unwrap();
 
         Shape foo = project.modelResult().unwrap().expectShape(ShapeId.from("com.foo#Foo"));
         assertThat(foo.hasTrait("tags"), is(true));
@@ -554,8 +555,8 @@ public class ProjectTest {
                 namespace com.foo
                 apply Bar @length(min: 1)
                 """;
-        TestWorkspace workspace = TestWorkspace.multipleModels(m1, m2, m3);
-        Project project = ProjectLoader.load(workspace.getRoot()).unwrap();
+        TestProject workspace = TestProject.multipleModels(m1, m2, m3);
+        Project project = loadProjectAt(workspace.getRoot()).unwrap();
 
         Shape foo = project.modelResult().unwrap().expectShape(ShapeId.from("com.foo#Foo"));
         Shape bar = project.modelResult().unwrap().expectShape(ShapeId.from("com.foo#Bar"));
@@ -606,8 +607,8 @@ public class ProjectTest {
                 namespace com.foo
                 apply Bar @pattern("a")
                 """;
-        TestWorkspace workspace = TestWorkspace.multipleModels(m1, m2, m3);
-        Project project = ProjectLoader.load(workspace.getRoot()).unwrap();
+        TestProject workspace = TestProject.multipleModels(m1, m2, m3);
+        Project project = loadProjectAt(workspace.getRoot()).unwrap();
 
         Shape bar = project.modelResult().unwrap().expectShape(ShapeId.from("com.foo#Bar"));
         assertThat(bar.hasTrait("pattern"), is(true));
@@ -644,8 +645,8 @@ public class ProjectTest {
                 namespace com.foo
                 apply Bar @tags(["bar"])
                 """;
-        TestWorkspace workspace = TestWorkspace.multipleModels(m1, m2, m3);
-        Project project = ProjectLoader.load(workspace.getRoot()).unwrap();
+        TestProject workspace = TestProject.multipleModels(m1, m2, m3);
+        Project project = loadProjectAt(workspace.getRoot()).unwrap();
 
         Shape bar = project.modelResult().unwrap().expectShape(ShapeId.from("com.foo#Bar"));
         assertThat(bar.hasTrait("tags"), is(true));
@@ -668,5 +669,9 @@ public class ProjectTest {
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static Result<Project, List<Exception>> loadProjectAt(Path root) {
+        return ProjectLoader.load(root, new ServerState());
     }
 }

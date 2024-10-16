@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import software.amazon.smithy.lsp.LspMatchers;
 import software.amazon.smithy.lsp.RequestBuilders;
 import software.amazon.smithy.lsp.ServerState;
-import software.amazon.smithy.lsp.TestWorkspace;
+import software.amazon.smithy.lsp.TestProject;
 import software.amazon.smithy.lsp.TextWithPositions;
 import software.amazon.smithy.lsp.document.Document;
 import software.amazon.smithy.lsp.project.Project;
@@ -1042,7 +1042,7 @@ public class CompletionHandlerTest {
     }
 
     private static List<CompletionItem> getCompItems(String text, Position... positions) {
-        TestWorkspace workspace = TestWorkspace.singleModel(text);
+        TestProject workspace = TestProject.singleModel(text);
         Project project = ProjectLoader.load(workspace.getRoot(), new ServerState()).unwrap();
         String uri = workspace.getUri("main.smithy");
         SmithyFile smithyFile = project.getSmithyFile(uri);

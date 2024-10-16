@@ -19,18 +19,18 @@ import software.amazon.smithy.lsp.project.Project;
 import software.amazon.smithy.lsp.project.ProjectLoader;
 import software.amazon.smithy.utils.ListUtils;
 
-public class FileWatcherRegistrationsTest {
+public class FileRegistrationsTest {
     @Test
     public void createsCorrectRegistrations() {
-        TestWorkspace workspace = TestWorkspace.builder()
-                .withSourceDir(new TestWorkspace.Dir()
+        TestProject workspace = TestProject.builder()
+                .withSourceDir(new TestProject.Dir()
                         .withPath("foo")
-                        .withSourceDir(new TestWorkspace.Dir()
+                        .withSourceDir(new TestProject.Dir()
                                 .withPath("bar")
                                 .withSourceFile("bar.smithy", "")
                                 .withSourceFile("baz.smithy", ""))
                         .withSourceFile("baz.smithy", ""))
-                .withSourceDir(new TestWorkspace.Dir()
+                .withSourceDir(new TestProject.Dir()
                         .withPath("other")
                         .withSourceFile("other.smithy", ""))
                 .withSourceFile("abc.smithy", "")
@@ -41,7 +41,7 @@ public class FileWatcherRegistrationsTest {
                 .build();
 
         Project project = ProjectLoader.load(workspace.getRoot(), new ServerState()).unwrap();
-        List<PathMatcher> matchers = FileWatcherRegistrations.getSmithyFileWatcherRegistrations(List.of(project))
+        List<PathMatcher> matchers = FileRegistrations.getSmithyFileWatcherRegistrations(List.of(project))
                 .stream()
                 .map(Registration::getRegisterOptions)
                 .map(o -> (DidChangeWatchedFilesRegistrationOptions) o)
