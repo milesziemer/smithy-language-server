@@ -22,7 +22,6 @@ import software.amazon.smithy.lsp.project.IdlFile;
 import software.amazon.smithy.lsp.project.Project;
 import software.amazon.smithy.lsp.project.ProjectTest;
 import software.amazon.smithy.lsp.project.SmithyFile;
-import software.amazon.smithy.model.validation.Severity;
 
 public class HoverHandlerTest {
     @Test
@@ -158,13 +157,16 @@ public class HoverHandlerTest {
         SmithyFile smithyFile = (SmithyFile) project.getProjectFile(uri);
 
         List<String> hover = new ArrayList<>();
-        HoverHandler handler = new HoverHandler(project, (IdlFile) smithyFile, Severity.WARNING);
+        HoverHandler handler = new HoverHandler(project, (IdlFile) smithyFile);
         for (Position position : positions) {
             HoverParams params = RequestBuilders.positionRequest()
                     .uri(uri)
                     .position(position)
                     .buildHover();
-            hover.add(handler.handle(params).getContents().getRight().getValue());
+            var result = handler.handle(params);
+            if (result != null) {
+                hover.add(result.getContents().getRight().getValue());
+            }
         }
 
         return hover;

@@ -7,7 +7,6 @@ package software.amazon.smithy.lsp.language;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -29,32 +28,22 @@ import software.amazon.smithy.model.shapes.SmithyIdlModelSerializer;
 import software.amazon.smithy.model.traits.DocumentationTrait;
 import software.amazon.smithy.model.traits.IdRefTrait;
 import software.amazon.smithy.model.traits.StringTrait;
-import software.amazon.smithy.model.validation.Severity;
 import software.amazon.smithy.model.validation.ValidatedResult;
-import software.amazon.smithy.model.validation.ValidationEvent;
 
 /**
  * Handles hover requests for the Smithy IDL.
  */
 public final class HoverHandler {
-    /**
-     * Empty markdown hover content.
-     */
-    public static final Hover EMPTY = new Hover(new MarkupContent("markdown", ""));
-
     private final Project project;
     private final IdlFile smithyFile;
-    private final Severity minimumSeverity;
 
     /**
      * @param project Project the hover is in
      * @param smithyFile Smithy file the hover is in
-     * @param minimumSeverity Minimum severity of validation events to show
      */
-    public HoverHandler(Project project, IdlFile smithyFile, Severity minimumSeverity) {
+    public HoverHandler(Project project, IdlFile smithyFile) {
         this.project = project;
         this.smithyFile = smithyFile;
-        this.minimumSeverity = minimumSeverity;
     }
 
     /**
@@ -65,7 +54,7 @@ public final class HoverHandler {
         Position position = params.getPosition();
         DocumentId id = smithyFile.document().copyDocumentId(position);
         if (id == null || id.idSlice().isEmpty()) {
-            return EMPTY;
+            return null;
         }
 
         Syntax.IdlParseResult parseResult = smithyFile.getParse();
@@ -77,18 +66,18 @@ public final class HoverHandler {
         return switch (idlPosition) {
             case IdlPosition.ControlKey ignored -> Builtins.CONTROL.getMember(id.copyIdValueForElidedMember())
                     .map(HoverHandler::withShapeDocs)
-                    .orElse(EMPTY);
+                    .orElse(null);
 
             case IdlPosition.MetadataKey ignored -> Builtins.METADATA.getMember(id.copyIdValue())
                     .map(HoverHandler::withShapeDocs)
-                    .orElse(EMPTY);
+                    .orElse(null);
 
             case IdlPosition.MetadataValue metadataValue -> takeShapeReference(
                             ShapeSearch.searchMetadataValue(metadataValue))
                     .map(HoverHandler::withShapeDocs)
-                    .orElse(EMPTY);
+                    .orElse(null);
 
-            case null -> EMPTY;
+            case null -> null;
 
             default -> modelSensitiveHover(id, idlPosition);
         };
@@ -109,7 +98,7 @@ public final class HoverHandler {
     private Hover modelSensitiveHover(DocumentId id, IdlPosition idlPosition) {
         ValidatedResult<Model> validatedModel = project.modelResult();
         if (validatedModel.getResult().isEmpty()) {
-            return EMPTY;
+            return null;
         }
 
         Model model = validatedModel.getResult().get();
@@ -122,31 +111,20 @@ public final class HoverHandler {
             default -> ShapeSearch.findShapeDefinition(idlPosition, id, model);
         };
 
-        if (matchingShape.isEmpty()) {
-            return EMPTY;
-        }
-
-        return withShapeAndValidationEvents(matchingShape.get(), model, validatedModel.getValidationEvents());
+        return matchingShape.map(shape -> withShape(shape, model)).orElse(null);
     }
 
-    private Hover withShapeAndValidationEvents(Shape shape, Model model, List<ValidationEvent> events) {
+    private Hover withShape(Shape shape, Model model) {
         String serializedShape = switch (shape) {
             case MemberShape memberShape -> serializeMember(memberShape);
             default -> serializeShape(model, shape);
         };
 
         if (serializedShape == null) {
-            return EMPTY;
+            return null;
         }
 
-        String serializedValidationEvents = serializeValidationEvents(events, shape);
-
-        String hoverContent = String.format("""
-                %s
-                ```smithy
-                %s
-                ```
-                """, serializedValidationEvents, serializedShape);
+        String hoverContent = String.format("```smithy%n%s%n```", serializedShape);
 
         // TODO: Add docs to a separate section of the hover content
         // if (shapeToSerialize.hasTrait(DocumentationTrait.class)) {
@@ -157,37 +135,11 @@ public final class HoverHandler {
         return withMarkupContents(hoverContent);
     }
 
-    private String serializeValidationEvents(List<ValidationEvent> events, Shape shape) {
-        StringBuilder serialized = new StringBuilder();
-        List<ValidationEvent> applicableEvents = events.stream()
-                .filter(event -> event.getShapeId().isPresent())
-                .filter(event -> event.getShapeId().get().equals(shape.getId()))
-                .filter(event -> event.getSeverity().compareTo(minimumSeverity) >= 0)
-                .toList();
-
-        if (!applicableEvents.isEmpty()) {
-            for (ValidationEvent event : applicableEvents) {
-                serialized.append("**")
-                        .append(event.getSeverity())
-                        .append("**")
-                        .append(": ")
-                        .append(event.getMessage());
-            }
-            serialized.append(System.lineSeparator())
-                    .append(System.lineSeparator())
-                    .append("---")
-                    .append(System.lineSeparator())
-                    .append(System.lineSeparator());
-        }
-
-        return serialized.toString();
-    }
-
     private static Hover withShapeDocs(Shape shape) {
         return shape.getTrait(DocumentationTrait.class)
                 .map(StringTrait::getValue)
                 .map(HoverHandler::withMarkupContents)
-                .orElse(EMPTY);
+                .orElse(null);
     }
 
     private static Hover withMarkupContents(String text) {
@@ -239,12 +191,11 @@ public final class HoverHandler {
             return null;
         }
 
-        String serializedShape = serialized.get(path)
+        return serialized.get(path)
                 .substring(15) // remove '$version: "2.0"'
                 .trim()
                 .replaceAll(Matcher.quoteReplacement(
                         // Replace newline literals with actual newlines
                         System.lineSeparator() + System.lineSeparator()), System.lineSeparator());
-        return serializedShape;
     }
 }
